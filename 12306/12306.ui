@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="horizontalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>751</width>
+      <height>80</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string> 出发站：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>终点站：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit_2"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>出行时间：</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDateEdit" name="dateEdit">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="displayFormat">
+        <string>yyyy-MM-dd</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton">
+       <property name="text">
+        <string>查询</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QTableWidget" name="tableWidget">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>120</y>
+      <width>751</width>
+      <height>401</height>
+     </rect>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Plain</enum>
+    </property>
+    <property name="rowCount">
+     <number>0</number>
+    </property>
+    <attribute name="horizontalHeaderDefaultSectionSize">
+     <number>79</number>
+    </attribute>
+    <column>
+     <property name="text">
+      <string>车次</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>起点站</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>终点站</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>出发时间</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>到达时间</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>历时</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>特等座</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>一等座</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>二等座</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>高级软卧</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>软卧</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>动卧</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>硬卧</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>软座</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>硬座</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>无座</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>其他</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>备注</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>起点站编号</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>终点站编号</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>车辆编号</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>票价编号</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>出发日期</string>
+     </property>
+    </column>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>737</x>
+     <y>94</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tableWidget</sender>
+   <signal>itemDoubleClicked(QTableWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>item_DoubleClick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>87</x>
+     <y>203</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>25</x>
+     <y>384</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>button_click()</slot>
+  <slot>delSelected()</slot>
+  <slot>item_DoubleClick()</slot>
+ </slots>
+</ui>
