@@ -5,11 +5,18 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QFont,QColor,QBrush,QPixmap
 from train import *
+import  requests
+from PIL import Image
+import image_utils
 
 class DialogWindow(QDialog):
 	def __init__(self):
 		super(DialogWindow, self).__init__()
 		loadUi('dialog.ui', self)
+
+		self.dialog_tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
+		self.dialog_tableWidget.setSelectionBehavior(QTableWidget.SelectRows)#设置选择行为，以行为单位
+		self.dialog_tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
 	def item_set(self,item):
 		train_no = item[20].text()
 		start_no = item[18].text()
@@ -96,6 +103,126 @@ class DialogWindow(QDialog):
 			self.dialog_tableWidget.setItem(10,1, QTableWidgetItem(""))
 
 
+
+	def buy_ticket(self):
+		ticket_item = self.dialog_tableWidget.selectedItems()
+		print(ticket_item[0].text())
+		if ticket_item == []:
+			QMessageBox.information(self,"提醒","请选择票务种类！",QMessageBox.Yes)	
+		if ticket_item[0].text()=='':
+			QMessageBox.information(self,"提醒","请选择有效的种类！",QMessageBox.Yes)
+		elif ticket_item[0].text()=='无':
+			print('无')
+		else:
+			print('有票')
+			img_dialog.show()
+			img_dialog.get_captcha_image()
+
+class img_dialog(QDialog):
+	def __init__(self):
+		super(img_dialog, self).__init__()
+		loadUi('img_dialog.ui', self)
+
+	def get_captcha_image(self):
+		ver_url="https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E"
+		check_res=my_session.get(ver_url)
+		with open('captcha.jpg','wb') as f:
+			f.write(check_res.content)
+		#self.image = QImage()
+
+		image_shape = (64, 64, 3)
+		img_num = image_utils.judge_image_background('captcha.jpg')
+		img_list = image_utils.split_image_text('captcha.jpg',(image_shape[0], image_shape[1]),img_num)
+		for row in img_list:
+			row.save("img/title-%d.jpg" % (img_list.index(row) + 1))
+
+		self.title_lable.setPixmap(QPixmap('img/title-1.jpg'))
+		if img_num==2:
+			self.title_lable_2.setPixmap(QPixmap('img/title-2.jpg'))
+		
+
+		img_list = image_utils.cut_images('captcha.jpg',(image_shape[0], image_shape[1]))
+		for row in img_list:
+			row.save("img/lable-%d.jpg" % (img_list.index(row) + 1))
+
+		self.img_lable_1.setPixmap(QPixmap('img/lable-1.jpg'))
+		self.img_lable_2.setPixmap(QPixmap('img/lable-2.jpg'))
+		self.img_lable_3.setPixmap(QPixmap('img/lable-3.jpg'))
+		self.img_lable_4.setPixmap(QPixmap('img/lable-4.jpg'))
+		self.img_lable_5.setPixmap(QPixmap('img/lable-5.jpg'))
+		self.img_lable_6.setPixmap(QPixmap('img/lable-6.jpg'))
+		self.img_lable_7.setPixmap(QPixmap('img/lable-7.jpg'))
+		self.img_lable_8.setPixmap(QPixmap('img/lable-8.jpg'))
+
+	def accept(self):
+		ids = []
+		if self.checkBox_1.checkState()==2:
+			ids.append(0)
+		if self.checkBox_2.checkState()==2:
+			ids.append(1)
+		if self.checkBox_3.checkState()==2:
+			ids.append(2)
+		if self.checkBox_4.checkState()==2:
+			ids.append(3)
+		if self.checkBox_5.checkState()==2:
+			ids.append(4)
+		if self.checkBox_6.checkState()==2:
+			ids.append(5)
+		if self.checkBox_7.checkState()==2:
+			ids.append(6)
+		if self.checkBox_8.checkState()==2:
+			ids.append(7)
+		self.reject()
+		
+
+		datas={"answer":image_utils.submit_captcha(ids),"login_site":"E","rand":"sjrand"}
+		check_url="https://kyfw.12306.cn/passport/captcha/captcha-check"
+		check_res=my_session.post(check_url,data=datas)
+		print(check_res.text)
+		if check_res.text[43:-2] == "4":
+			QMessageBox.information(self,"提醒",check_res.text[19:-20],QMessageBox.Yes)
+			login_dialog.show()
+		else:
+			QMessageBox.information(self,"提醒",check_res.text[19:-20]+'，请再次勾选！',QMessageBox.Yes)
+			img_dialog.show()
+			img_dialog.get_captcha_image()
+
+
+class login_dialog(QDialog):
+	"""docstring for login_dialog"""
+	def __init__(self):
+		super(login_dialog, self).__init__()
+		loadUi('login_dialog.ui', self)
+
+	def accept(self):
+		username = self.lineEdit_1.text()
+		password = self.lineEdit_2.text()
+
+		login_url="https://kyfw.12306.cn/passport/web/login"
+		uamtk_url="https://kyfw.12306.cn/otn/uamauthclient"
+		Uamtk_url="https://kyfw.12306.cn/passport/web/auth/uamtk"
+		user_url="https://kyfw.12306.cn/otn/login/userLogin"
+
+		data={"username":username,"password":password,"appid":"otn"}
+		login_res=my_session.post(login_url,data=data)
+		print(login_res.text)
+		data2={"appid":"otn"}
+
+		Uamtk_res=my_session.post(Uamtk_url,data=data2)
+		json=json.loads(Uamtk_res.text)
+		umtk_id=json["newapptk"]
+		print(umtk_id)
+
+		data1={"tk": umtk_id}
+		uamtk_res=my_session.post(uamtk_url,data=data1)
+		print(uamtk_res.text)
+
+		data3={"_json_att":""}
+		use_res=my_session.post(user_url,data=data3)
+		print(use_res.text)
+		
+		print(my_session)
+
 class MainWindow(QMainWindow):
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
@@ -121,6 +248,9 @@ class MainWindow(QMainWindow):
 			QMessageBox.information(self,"提醒","该次列车处于停运状态,无车票信息！",QMessageBox.Yes)
 		else:
 			QMessageBox.information(self,"提醒","出错！",QMessageBox.Yes)
+
+
+
 
 
 		
@@ -197,15 +327,15 @@ class MainWindow(QMainWindow):
 			#出发日期
 			self.tableWidget.setItem(count,22, QTableWidgetItem(start_time))
 			count+=1
-			
-			
 
-
-if __name__ == "__main__": 		
+if __name__ == "__main__":
+	my_session=requests.session() 		
 	app=0 #This is the solution 
 	app = QApplication(sys.argv)
 	w = MainWindow()
 	dialogWindow = DialogWindow()
+	img_dialog=img_dialog()
+	login_dialog=login_dialog()
 	w.show()
 	sys.exit(app.exec())
 
