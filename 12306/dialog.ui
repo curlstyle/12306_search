@@ -110,19 +110,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QPushButton" name="pushButton">
-   <property name="geometry">
-    <rect>
-     <x>114</x>
-     <y>404</y>
-     <width>75</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>购票</string>
-   </property>
-  </widget>
  </widget>
  <resources/>
  <connections>
@@ -158,24 +145,5 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>pushButton</sender>
-   <signal>clicked()</signal>
-   <receiver>Dialog</receiver>
-   <slot>buy_ticket()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>155</x>
-     <y>409</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>276</x>
-     <y>383</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
- <slots>
-  <slot>buy_ticket()</slot>
- </slots>
 </ui>
