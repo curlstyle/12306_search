@@ -8,6 +8,12 @@ from train import *
 import  requests
 from PIL import Image
 import image_utils
+import http.cookiejar as cookielib
+import  json
+import os
+import urllib.request
+import urllib.parse
+import re
 
 class DialogWindow(QDialog):
 	def __init__(self):
@@ -18,11 +24,23 @@ class DialogWindow(QDialog):
 		self.dialog_tableWidget.setSelectionBehavior(QTableWidget.SelectRows)#设置选择行为，以行为单位
 		self.dialog_tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
 	def item_set(self,item):
+
 		train_no = item[20].text()
 		start_no = item[18].text()
 		end_no = item[19].text()
 		types = item[21].text()
 		time = item[22].text()
+
+		#赋值全局变量
+		global secretStr
+		global train_date
+		global back_train_date
+		secretStr = item[23].text()
+		train_date = time
+		back_train_date = time
+
+		print(secretStr)
+
 		print(train_no,start_no,end_no,types,time)
 		price_data = Get_price_information(train_no,start_no,end_no,types,time)
 		#特等座A9
@@ -115,8 +133,23 @@ class DialogWindow(QDialog):
 			print('无')
 		else:
 			print('有票')
-			img_dialog.show()
-			img_dialog.get_captcha_image()
+			if os.path.exists('cookie.txt')==True:
+				if os.path.getsize('cookie.txt')==0:
+					img_dialog.show()
+					img_dialog.get_captcha_image()
+				else:
+					my_session.cookies.load('cookie.txt', ignore_discard=True, ignore_expires=True)
+					#此用opener的open方法打开网页
+					response = my_session.get(checkUser_url,headers=headers,cookies=my_session.cookies,verify=False)
+					str_json = json.loads(response.text)
+					if str_json['data']['flag']== 'False':
+						QMessageBox.information(self,"提醒","cookie已过期，请重新登录",QMessageBox.Yes)	
+						img_dialog.show()
+						img_dialog.get_captcha_image()
+			else:
+				img_dialog.show()
+				img_dialog.get_captcha_image()
+
 
 class img_dialog(QDialog):
 	def __init__(self):
@@ -198,30 +231,102 @@ class login_dialog(QDialog):
 		username = self.lineEdit_1.text()
 		password = self.lineEdit_2.text()
 
-		login_url="https://kyfw.12306.cn/passport/web/login"
-		uamtk_url="https://kyfw.12306.cn/otn/uamauthclient"
-		Uamtk_url="https://kyfw.12306.cn/passport/web/auth/uamtk"
-		user_url="https://kyfw.12306.cn/otn/login/userLogin"
+
 
 		data={"username":username,"password":password,"appid":"otn"}
 		login_res=my_session.post(login_url,data=data)
 		print(login_res.text)
-		data2={"appid":"otn"}
 
+		data2={"appid":"otn"}
 		Uamtk_res=my_session.post(Uamtk_url,data=data2)
-		json=json.loads(Uamtk_res.text)
-		umtk_id=json["newapptk"]
+		Uamtk_res_json=json.loads(Uamtk_res.text)
+		umtk_id=Uamtk_res_json["newapptk"]
 		print(umtk_id)
 
 		data1={"tk": umtk_id}
 		uamtk_res=my_session.post(uamtk_url,data=data1)
 		print(uamtk_res.text)
 
+		
 		data3={"_json_att":""}
 		use_res=my_session.post(user_url,data=data3)
-		print(use_res.text)
+
+		try:
+			check_res = my_session.get(checkUser_url,timeout = 5)
+		except :
+			check_res = my_session.get(checkUser_url,timeout = 10)
 		
-		print(my_session)
+		res_json = json.loads(check_res.text)
+		print(res_json)
+		if res_json['data']['flag']== False:
+			QMessageBox.information(self,"提醒","登录失败！",QMessageBox.Yes)
+
+		elif res_json['data']['flag']== True:
+			QMessageBox.information(self,"提醒","登录成功！",QMessageBox.Yes)
+
+		print(secretStr)
+
+		order_data={
+		"secretStr":urllib.parse.unquote(secretStr),
+		"train_date":train_date,
+		"back_train_date":back_train_date,
+		"tour_flag": "dc",
+		"purpose_codes":  "ADULT",
+		"query_from_station_name":query_from_station_name,
+		"query_to_station_name":query_to_station_name
+		}
+		print(order_data)
+		order_res = my_session.post(order_url,data=order_data)
+		print(order_res.text)
+		order_res_json = json.loads(order_res.text)
+
+
+		initDc_data = {
+			"_json_att": ""
+		}
+		initDc_res = my_session.post(initDc_url,data=initDc_data)
+
+		if initDc_res.status_code == requests.codes.ok:
+			a1 = re.search(r'globalRepeatSubmitToken.+', initDc_res.text).group()
+			globalRepeatSubmitToken = re.sub(r'(globalRepeatSubmitToken)|(=)|(\s)|(;)|(\')', '', a1)
+			b1 = re.search(r'key_check_isChange.+', initDc_res.text).group().split(',')[0]
+			key_check_isChange = re.sub(r'(key_check_isChange)|(\')|(:)', '', b1)
+			print(globalRepeatSubmitToken,key_check_isChange)
+
+			DTO_data = {
+					"_json_att": "",
+					"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
+			}
+			DTO_res = my_session.post(DTO_url,data=DTO_data)
+			DTO_res_json = json.loads(DTO_res.text)
+			print(DTO_res_json)
+			if passDTO_res_json['data']['isExist'] == true:
+				print("1111111")
+				# checkOrderInfo_data={
+				# 	'cancel_flag':'2',
+				# 	'bed_level_order_num':'000000000000000000000000000000',
+				# 	'passengerTicketStr':,
+				# 	'oldPassengerStr':,
+				# 	'tour_flag':'dc',
+				# 	'randCode':'',
+				# 	'whatsSelect':'1',
+				# 	'_json_att':'',
+				# 	"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
+
+				# }
+				# checkOrderInfo_url
+
+
+					
+
+
+
+
+
+		my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
+		QMessageBox.information(self,"提醒","cookies储存成功！",QMessageBox.Yes)
+		login_dialog.reject()
+
 
 class MainWindow(QMainWindow):
 	def __init__(self, parent=None):
@@ -237,6 +342,8 @@ class MainWindow(QMainWindow):
 		self.tableWidget.setSelectionBehavior(QTableWidget.SelectRows)#设置选择行为，以行为单位
 		self.tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
 
+		
+
 	def item_DoubleClick(self):
 		
 		item = self.tableWidget.selectedItems()
@@ -249,12 +356,6 @@ class MainWindow(QMainWindow):
 		else:
 			QMessageBox.information(self,"提醒","出错！",QMessageBox.Yes)
 
-
-
-
-
-		
-
 	def button_click(self):
 		# self.tableWidget.clearContents()
 
@@ -265,6 +366,7 @@ class MainWindow(QMainWindow):
 		
 		start_station = self.lineEdit.text()#.isEmpty() 
 		end_station = self.lineEdit_2.text()
+
 		if start_station=="" or end_station=="":
 			QMessageBox.warning(self,"警告","起始站和终点站不能为空!")
 		else:
@@ -277,15 +379,19 @@ class MainWindow(QMainWindow):
 		print(endStation_sx)
 
 		train_dit = train.Get_train_information(startStation_sx,endStation_sx,start_time)
-		#print(train_dit)
-		#print(station_sx_dit[])
 
-		#隐藏表头
-		#self.tableWidget.verticalHeader().setVisible(False)
+		#赋值全局变量
+		global query_from_station_name
+		global query_to_station_name
+		query_from_station_name=start_station
+		query_to_station_name=end_station
+
+		
 		count = 0
 		for i in train_dit.keys():
 
 			self.tableWidget.insertRow(count)
+
 			self.tableWidget.setItem(count,0, QTableWidgetItem(train_dit[i][3]))
 			self.tableWidget.setItem(count,1, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][4])))
 			self.tableWidget.setItem(count,2, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][5])))
@@ -326,10 +432,45 @@ class MainWindow(QMainWindow):
 			self.tableWidget.setItem(count,21, QTableWidgetItem(train_dit[i][35]))
 			#出发日期
 			self.tableWidget.setItem(count,22, QTableWidgetItem(start_time))
+			
+			self.tableWidget.setItem(count,23, QTableWidgetItem(train_dit[i][0]))
 			count+=1
 
+		#self.tableWidget.setColumnHidden(23,True)
+
 if __name__ == "__main__":
-	my_session=requests.session() 		
+
+	login_url="https://kyfw.12306.cn/passport/web/login"
+	uamtk_url="https://kyfw.12306.cn/otn/uamauthclient"
+	Uamtk_url="https://kyfw.12306.cn/passport/web/auth/uamtk"
+	user_url="https://kyfw.12306.cn/otn/login/userLogin"
+	checkUser_url = 'https://kyfw.12306.cn/otn/login/checkUser'
+	order_url = 'https://kyfw.12306.cn/otn/leftTicket/submitOrderRequest'
+	initDc_url = "https://kyfw.12306.cn/otn/confirmPassenger/initDc"
+	DTO_url ='https://kyfw.12306.cn/otn/confirmPassenger/getPassengerDTOs'
+	checkOrderInfo_url ='https://kyfw.12306.cn/otn/confirmPassenger/checkOrderInfo'
+
+
+	headers = {'Accept': '*/*',
+           'Accept-Language': 'en-US,en;q=0.8',
+           'Cache-Control': 'max-age=0',
+           'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36',
+           'Connection': 'keep-alive',
+           'Referer': 'https://kyfw.12306.cn/otn/login/checkUser'
+           }
+
+	#购票所需数据(全局变量)
+	# secretStr = ""#车次,需要进行解码
+	# train_date = "" #出发日期
+	# back_train_date = "" #返回日期
+	# tour_flag = "dc" #单程/ 往返(wc)
+	# purpose_codes = "ADULT" #普通/学生(0X00)
+	# query_from_station_name  #出发车站
+	# query_to_station_name  #返回车站
+
+
+	my_session=requests.session() 
+	my_session.cookies = cookielib.LWPCookieJar(filename = "cookie.txt")		
 	app=0 #This is the solution 
 	app = QApplication(sys.argv)
 	w = MainWindow()

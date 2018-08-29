@@ -206,6 +206,11 @@
       <string>出发日期</string>
      </property>
     </column>
+    <column>
+     <property name="text">
+      <string>secretStr</string>
+     </property>
+    </column>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
