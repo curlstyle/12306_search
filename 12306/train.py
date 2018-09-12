@@ -2,6 +2,8 @@ import urllib
 from bs4 import BeautifulSoup
 from xlwt import *  
 import json
+import time 
+import random
 
 station_name_url = "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js"
 
@@ -14,6 +16,7 @@ headers = {'Accept': '*/*',
            }
 station_dit={}
 station_sx_dit={}
+ipList=['123.157.67.30:34942', '113.57.35.146:808', '113.110.44.20:61234', '122.96.93.158:49435', '118.190.95.35:9001']
 
 class Station():
 	def __init__(self,Station_name_y_num,Station_name,Station_name_sx,Station_name_qp,Station_name_jp,Station_name_num):
@@ -67,18 +70,36 @@ def Get_station_name_by_sx(station_name_sx):
 # startTime="" yyyy-MM-dd
 def Get_train_information(startStation_sx,endStation_sx,startTime):
 	train_dit={}
-	information_url = "https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
+	information_url = "https://kyfw.12306.cn/otn/leftTicket/queryA?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
 	print(information_url)
 	information_request = urllib.request.Request(information_url,None,headers)
 	information_response = urllib.request.urlopen(information_request,None,timeout=10)
-
 	information_html = information_response.read()
 	information_soup = BeautifulSoup(information_html, "html.parser")
 	information_json = information_soup.string
+
+	while information_json==None:
+		user_agent ='Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
+		headers_test = {'User-Agent':user_agent}
+		proxy = {'http':'http://%s'%ipList[random.randint(0,(len(ipList)-1))]}
+		proxy_handler = urllib.request.ProxyHandler(proxy)
+		opener = urllib.request.build_opener(proxy_handler)
+		urllib.request.install_opener(opener)
+
+		information_request = urllib.request.Request(information_url,None,headers)
+		information_response = urllib.request.urlopen(information_request,None,timeout=10)
+		information_html = information_response.read()
+
+		information_soup = BeautifulSoup(information_html, "html.parser")
+		information_json = information_soup.string
+		print(information_json)
+
+	
+
 	try:
 		information_html_json = json.loads(information_json)
-	except Exception as e:
-		raise e
+	except:
+		information_html_json = json.loads(information_json)
 
 	try:
 		train_information_data = information_html_json['data']

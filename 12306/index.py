@@ -14,6 +14,7 @@ import os
 import urllib.request
 import urllib.parse
 import re
+import getstr_utils
 
 class DialogWindow(QDialog):
 	def __init__(self):
@@ -35,13 +36,13 @@ class DialogWindow(QDialog):
 		global secretStr
 		global train_date
 		global back_train_date
+		
 		secretStr = item[23].text()
 		train_date = time
 		back_train_date = time
+		
 
-		print(secretStr)
 
-		print(train_no,start_no,end_no,types,time)
 		price_data = Get_price_information(train_no,start_no,end_no,types,time)
 		#特等座A9
 		if item[6].text():
@@ -124,15 +125,27 @@ class DialogWindow(QDialog):
 
 	def buy_ticket(self):
 		ticket_item = self.dialog_tableWidget.selectedItems()
-		print(ticket_item[0].text())
+
+
 		if ticket_item == []:
 			QMessageBox.information(self,"提醒","请选择票务种类！",QMessageBox.Yes)	
 		if ticket_item[0].text()=='':
 			QMessageBox.information(self,"提醒","请选择有效的种类！",QMessageBox.Yes)
 		elif ticket_item[0].text()=='无':
-			print('无')
+			QMessageBox.information(self,"提醒","请选择有余票的座位！",QMessageBox.Yes)
 		else:
-			print('有票')
+			#商务座(9),特等座(P),一等座(M),二等座(O),高级软卧(6),软卧(4),硬卧(3),软座(2),硬座(1),
+			global seat_type_codes
+			seat_type_list = ['P','M','O','6','4','5','3','2','1','1','0']
+			dialog_count = self.dialog_tableWidget.rowCount()#总行数
+			row_count = self.dialog_tableWidget.currentRow()+1 #当前选中行行号(从1开始)
+			for x in range(1,dialog_count):
+				if x==row_count:
+					seat_type_codes = seat_type_list[x-1]
+
+			
+			
+
 			if os.path.exists('cookie.txt')==True:
 				if os.path.getsize('cookie.txt')==0:
 					img_dialog.show()
@@ -231,25 +244,27 @@ class login_dialog(QDialog):
 		username = self.lineEdit_1.text()
 		password = self.lineEdit_2.text()
 
-
-
 		data={"username":username,"password":password,"appid":"otn"}
 		login_res=my_session.post(login_url,data=data)
-		print(login_res.text)
+
 
 		data2={"appid":"otn"}
 		Uamtk_res=my_session.post(Uamtk_url,data=data2)
 		Uamtk_res_json=json.loads(Uamtk_res.text)
 		umtk_id=Uamtk_res_json["newapptk"]
-		print(umtk_id)
+
 
 		data1={"tk": umtk_id}
 		uamtk_res=my_session.post(uamtk_url,data=data1)
-		print(uamtk_res.text)
-
+		if uamtk_res:
+			uamtk_res_json=json.loads(uamtk_res.text)
+			print(uamtk_res_json)
+		
 		
 		data3={"_json_att":""}
 		use_res=my_session.post(user_url,data=data3)
+		print(use_res)
+		
 
 		try:
 			check_res = my_session.get(checkUser_url,timeout = 5)
@@ -257,14 +272,14 @@ class login_dialog(QDialog):
 			check_res = my_session.get(checkUser_url,timeout = 10)
 		
 		res_json = json.loads(check_res.text)
-		print(res_json)
+
 		if res_json['data']['flag']== False:
 			QMessageBox.information(self,"提醒","登录失败！",QMessageBox.Yes)
 
 		elif res_json['data']['flag']== True:
 			QMessageBox.information(self,"提醒","登录成功！",QMessageBox.Yes)
 
-		print(secretStr)
+
 
 		order_data={
 		"secretStr":urllib.parse.unquote(secretStr),
@@ -275,11 +290,11 @@ class login_dialog(QDialog):
 		"query_from_station_name":query_from_station_name,
 		"query_to_station_name":query_to_station_name
 		}
-		print(order_data)
-		order_res = my_session.post(order_url,data=order_data)
-		print(order_res.text)
-		order_res_json = json.loads(order_res.text)
 
+		order_res = my_session.post(order_url,data=order_data)
+
+		order_res_json = json.loads(order_res.text)
+		print(order_res_json)
 
 		initDc_data = {
 			"_json_att": ""
@@ -289,32 +304,37 @@ class login_dialog(QDialog):
 		if initDc_res.status_code == requests.codes.ok:
 			a1 = re.search(r'globalRepeatSubmitToken.+', initDc_res.text).group()
 			globalRepeatSubmitToken = re.sub(r'(globalRepeatSubmitToken)|(=)|(\s)|(;)|(\')', '', a1)
-			b1 = re.search(r'key_check_isChange.+', initDc_res.text).group().split(',')[0]
-			key_check_isChange = re.sub(r'(key_check_isChange)|(\')|(:)', '', b1)
-			print(globalRepeatSubmitToken,key_check_isChange)
+			#print(globalRepeatSubmitToken)
 
+			##查询联系人信息
 			DTO_data = {
 					"_json_att": "",
 					"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
 			}
 			DTO_res = my_session.post(DTO_url,data=DTO_data)
+			global DTO_res_json
 			DTO_res_json = json.loads(DTO_res.text)
-			print(DTO_res_json)
-			if passDTO_res_json['data']['isExist'] == true:
-				print("1111111")
-				# checkOrderInfo_data={
-				# 	'cancel_flag':'2',
-				# 	'bed_level_order_num':'000000000000000000000000000000',
-				# 	'passengerTicketStr':,
-				# 	'oldPassengerStr':,
-				# 	'tour_flag':'dc',
-				# 	'randCode':'',
-				# 	'whatsSelect':'1',
-				# 	'_json_att':'',
-				# 	"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
 
-				# }
-				# checkOrderInfo_url
+			if DTO_res_json['data']['isExist'] == True:
+				self.select_people_dialog = select_people_dialog()
+				self.select_people_dialog.exec_()
+
+				checkOrderInfo_data={
+					'cancel_flag':'2',
+					'bed_level_order_num':'000000000000000000000000000000',
+					'passengerTicketStr':getstr_utils.getPassengerTicketStr(people_list,seat_type_codes),
+					'oldPassengerStr':getstr_utils.getOldPassengerStr(people_list),
+					'tour_flag':'dc',
+					'randCode':'',
+					'whatsSelect':'1',
+					'_json_att':'',
+					"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
+
+				}
+				checkOrder_res = my_session.post(checkOrderInfo_url,data=checkOrderInfo_data)
+				checkOrder_res_json = json.loads(checkOrder_res.text)
+				print(checkOrder_res_json)
+				
 
 
 					
@@ -327,6 +347,26 @@ class login_dialog(QDialog):
 		QMessageBox.information(self,"提醒","cookies储存成功！",QMessageBox.Yes)
 		login_dialog.reject()
 
+class select_people_dialog(QDialog):
+	
+    def __init__(self):
+        super(select_people_dialog, self).__init__()
+        loadUi('select_people_dialog.ui', self)
+        self.checkBox={}
+        for x in range(0,len(DTO_res_json['data']['normal_passengers'])):
+        	self.checkBox[x]=QCheckBox(DTO_res_json['data']['normal_passengers'][x]['passenger_name'])
+        	self.gridLayout.addWidget(self.checkBox[x])
+
+    def accept(self):
+    	global people_list
+    	people_list=[]
+    	for x in range(0,len(DTO_res_json['data']['normal_passengers'])):
+    		if self.checkBox[x].checkState()==2:
+    			people_list.append(DTO_res_json['data']['normal_passengers'][x])
+    	if people_list==[]:
+    		QMessageBox.information(self,"提醒","请勾选联系人！",QMessageBox.Yes)
+    	else:	
+    		self.reject()
 
 class MainWindow(QMainWindow):
 	def __init__(self, parent=None):
@@ -374,9 +414,8 @@ class MainWindow(QMainWindow):
 			print(start_station,end_station,start_time)
 		train.Get_station_dit()
 		startStation_sx = train.Get_sx_by_station_name(start_station)
-		print(startStation_sx)
+		
 		endStation_sx = train.Get_sx_by_station_name(end_station)
-		print(endStation_sx)
 
 		train_dit = train.Get_train_information(startStation_sx,endStation_sx,start_time)
 
@@ -454,7 +493,7 @@ if __name__ == "__main__":
 	headers = {'Accept': '*/*',
            'Accept-Language': 'en-US,en;q=0.8',
            'Cache-Control': 'max-age=0',
-           'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36',
+           'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0',
            'Connection': 'keep-alive',
            'Referer': 'https://kyfw.12306.cn/otn/login/checkUser'
            }
@@ -477,6 +516,7 @@ if __name__ == "__main__":
 	dialogWindow = DialogWindow()
 	img_dialog=img_dialog()
 	login_dialog=login_dialog()
+
 	w.show()
 	sys.exit(app.exec())
 
