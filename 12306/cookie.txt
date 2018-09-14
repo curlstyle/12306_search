@@ -1,8 +1,0 @@
-#LWP-Cookies-2.0
-Set-Cookie3: BIGipServerotn="1725497610.64545.0000"; path="/"; domain="kyfw.12306.cn"; path_spec; discard; version=0
-Set-Cookie3: BIGipServerpassport="937951498.50215.0000"; path="/"; domain="kyfw.12306.cn"; path_spec; discard; version=0
-Set-Cookie3: route=c5c62a339e7744272a54643b3be5bf64; path="/"; domain="kyfw.12306.cn"; path_spec; discard; version=0
-Set-Cookie3: JSESSIONID=A8AFEE80DDC2B7BEAEE1232AB9325004; path="/otn"; domain="kyfw.12306.cn"; path_spec; discard; version=0
-Set-Cookie3: tk=z7pyb6mnS7YLgOXSRv8B4wpKWxn4wApHDAwrcl7s9Rt0mO2Loz9190; path="/otn"; domain="kyfw.12306.cn"; path_spec; discard; version=0
-Set-Cookie3: _passport_session=9a0e6c226e794c39a280387ac87f90c91463; path="/passport"; domain="kyfw.12306.cn"; path_spec; discard; version=0
-Set-Cookie3: uamtk=rjKuOhAQMsJXcFH3IqooiYbGrjHThtDuoEk0hOBpFhyvRJ82nx9190; path="/passport"; domain="kyfw.12306.cn"; path_spec; discard; version=0
