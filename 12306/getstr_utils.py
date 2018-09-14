@@ -88,7 +88,7 @@ def getOldPassengerStr(userInfo):
         else:
             oldPassengerStr = Str
         
-    return oldPassengerStr
+    return oldPassengerStr+"_"
 
 #座位编号,0,票类型,乘客名,证件类型,证件号,手机号码,保存常用联系人(Y或N)
 #商务座(9),特等座(P),一等座(M),二等座(O),高级软卧(6),软卧(4),硬卧(3),软座(2),硬座(1),
@@ -108,7 +108,7 @@ def getPassengerTicketStr(userInfo,seat_type_codes):
         else:
             passengerTicketStr = Str
 
-    return passengerTicketStr 
+    return passengerTicketStr+"_"
 
 
     

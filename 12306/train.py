@@ -94,8 +94,6 @@ def Get_train_information(startStation_sx,endStation_sx,startTime):
 		information_json = information_soup.string
 		print(information_json)
 
-	
-
 	try:
 		information_html_json = json.loads(information_json)
 	except:

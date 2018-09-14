@@ -15,6 +15,7 @@ import urllib.request
 import urllib.parse
 import re
 import getstr_utils
+import time_utils
 
 class DialogWindow(QDialog):
 	def __init__(self):
@@ -26,7 +27,6 @@ class DialogWindow(QDialog):
 		self.dialog_tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
 	def item_set(self,item):
 
-		train_no = item[20].text()
 		start_no = item[18].text()
 		end_no = item[19].text()
 		types = item[21].text()
@@ -36,13 +36,13 @@ class DialogWindow(QDialog):
 		global secretStr
 		global train_date
 		global back_train_date
-		
+		global train_no
 		secretStr = item[23].text()
 		train_date = time
 		back_train_date = time
+		train_no = item[20].text()
+
 		
-
-
 		price_data = Get_price_information(train_no,start_no,end_no,types,time)
 		#特等座A9
 		if item[6].text():
@@ -279,6 +279,15 @@ class login_dialog(QDialog):
 		elif res_json['data']['flag']== True:
 			QMessageBox.information(self,"提醒","登录成功！",QMessageBox.Yes)
 
+	# "secretStr" 车次,需要进行解码
+   #   "train_date": 出发日期
+   #   "back_train_date"  返回日期
+   #   "tour_flag": "dc"  单程/ 往返(wc)
+   #   "purpose_codes":  "ADULT"  普通/学生(0X00)
+   #   "query_from_stati":  出发车站 ，可以在查询车次接口中得到
+   #   "query_to_station":  返回车站，  可以在查询车次接口中得到
+   #   "undefined": ""  应该是跟返回数据相关
+
 
 
 		order_data={
@@ -306,6 +315,19 @@ class login_dialog(QDialog):
 			globalRepeatSubmitToken = re.sub(r'(globalRepeatSubmitToken)|(=)|(\s)|(;)|(\')', '', a1)
 			#print(globalRepeatSubmitToken)
 
+			a2 = re.search(r'queryLeftTicketRequestDTO\':([\s\S]*?);', initDc_res.text).group()
+			a3 = re.search(r'ypInfoDetail\':\'([\s\S]*?)\'', a2).group()
+			a4 = re.search(r'train_location\':\'([\s\S]*?)\'', a2).group()
+			leftTicketStr = re.sub(r'(ypInfoDetail)|(,)|(\s)|(;)|(\')|(:)', '', a3)
+			train_location = re.sub(r'(train_location)|(,)|(\s)|(;)|(\')|(:)', '', a4)
+
+			key_str = re.search(r'key_check_isChange\':\'([\s\S]*?)\'', initDc_res.text).group()
+			key_check_isChange = re.sub(r'(key_check_isChange)|(,)|(\s)|(;)|(\')|(:)', '', key_str)
+			print(leftTicketStr)
+			print(train_location)
+			print(key_check_isChange)
+
+
 			##查询联系人信息
 			DTO_data = {
 					"_json_att": "",
@@ -318,12 +340,14 @@ class login_dialog(QDialog):
 			if DTO_res_json['data']['isExist'] == True:
 				self.select_people_dialog = select_people_dialog()
 				self.select_people_dialog.exec_()
-
+				passengerTicketStr = getstr_utils.getPassengerTicketStr(people_list,seat_type_codes)
+				oldPassengerStr = getstr_utils.getOldPassengerStr(people_list)
+				#tour_flag: {dc: "dc", wc: "wc", fc: "fc", gc: "gc", lc: "lc", lc1: "l1", lc2: "l2"},
 				checkOrderInfo_data={
 					'cancel_flag':'2',
 					'bed_level_order_num':'000000000000000000000000000000',
-					'passengerTicketStr':getstr_utils.getPassengerTicketStr(people_list,seat_type_codes),
-					'oldPassengerStr':getstr_utils.getOldPassengerStr(people_list),
+					'passengerTicketStr':passengerTicketStr,
+					'oldPassengerStr':oldPassengerStr,
 					'tour_flag':'dc',
 					'randCode':'',
 					'whatsSelect':'1',
@@ -333,11 +357,59 @@ class login_dialog(QDialog):
 				}
 				checkOrder_res = my_session.post(checkOrderInfo_url,data=checkOrderInfo_data)
 				checkOrder_res_json = json.loads(checkOrder_res.text)
-				print(checkOrder_res_json)
 				
+				
+# 				{'train_date': 'Mon Jan  1 2018 00:00:00 GMT+0800 (中国标准时间)', 'train_no': '78000K95180E',
+#  'stationTrainCode': 'K9518',
+#  'seatType': '3',
+#  'fromStationTelecode': 'GIW',
+#  'toStationTelecode': 'ZIW',
+#  'leftTicket': 'fRHQaP8JPYKHxyvfihr70ZJYDi2VYncf4DPG%2FWI6ZmA4DYyN', 
+# 'purpose_codes': '00', 
+# 'train_location': 'W2', 
+# '_json_att': '', 
+# 'REPEAT_SUBMIT_TOKEN': 'a8faf49bca59d540d55662d1692a7dc4'}
 
 
-					
+
+				getQueue_data = {
+				'train_date': time_utils.fmt_time(train_date), 
+				'train_no': train_no,
+				'stationTrainCode': stationTrainCode,
+				'seatType': seat_type_codes,
+				'fromStationTelecode': fromStationTelecode,
+				'toStationTelecode': toStationTelecode,
+				'leftTicket': leftTicketStr, 
+				'purpose_codes': 'ADULT', #默认取ADULT,表成人,学生表示为：0X00
+				'train_location': train_location, 
+				'_json_att': '', 
+				'REPEAT_SUBMIT_TOKEN': globalRepeatSubmitToken
+				}
+				getQueue_res = my_session.post(getQueue_url,data=getQueue_data)
+				getQueue_res_json = json.loads(getQueue_res.text)
+				print(getQueue_res_json)
+
+				confirmOrder_data={
+				'passengerTicketStr': passengerTicketStr,  #选票人信息，获取过
+				'oldPassengerStr': oldPassengerStr,  #获取过
+				'randCode': '',     #随机值，空
+				"purpose_codes": 'ADULT',    #获取过
+				"key_check_isChange": key_check_isChange,   #和REPEAT_SUBMIT_TOKEN一样在相同网页获取
+				"leftTicketStr": leftTicketStr,    #获取过
+				'train_location': train_location,     #获取过
+				'choose_seats':'',       #座位类型，一般是高铁用
+				'roomType': '00',     #固定值
+				'dwAll': 'N',       #固定值
+				"_json_att": "",  #空
+				'seatDetailType':'000',       #固定值
+				'whatsSelect': '1',      #固定值
+				"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
+				}
+				confirmOrder_res = my_session.post(confirmOrder_url,data=confirmOrder_data)
+				confirmOrder_res_json = json.loads(confirmOrder_res.text)
+				print(confirmOrder_res_json)
+
+				 
 
 
 
@@ -387,6 +459,10 @@ class MainWindow(QMainWindow):
 	def item_DoubleClick(self):
 		
 		item = self.tableWidget.selectedItems()
+
+		global stationTrainCode
+		stationTrainCode=item[0].text()
+
 		print(item[17].text())
 		if item[17].text()=="预订":
 			dialogWindow.show()
@@ -422,15 +498,18 @@ class MainWindow(QMainWindow):
 		#赋值全局变量
 		global query_from_station_name
 		global query_to_station_name
+
+		global fromStationTelecode
+		global toStationTelecode
 		query_from_station_name=start_station
 		query_to_station_name=end_station
 
-		
+		fromStationTelecode = startStation_sx
+		toStationTelecode = endStation_sx
 		count = 0
 		for i in train_dit.keys():
 
 			self.tableWidget.insertRow(count)
-
 			self.tableWidget.setItem(count,0, QTableWidgetItem(train_dit[i][3]))
 			self.tableWidget.setItem(count,1, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][4])))
 			self.tableWidget.setItem(count,2, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][5])))
@@ -471,7 +550,6 @@ class MainWindow(QMainWindow):
 			self.tableWidget.setItem(count,21, QTableWidgetItem(train_dit[i][35]))
 			#出发日期
 			self.tableWidget.setItem(count,22, QTableWidgetItem(start_time))
-			
 			self.tableWidget.setItem(count,23, QTableWidgetItem(train_dit[i][0]))
 			count+=1
 
@@ -488,6 +566,8 @@ if __name__ == "__main__":
 	initDc_url = "https://kyfw.12306.cn/otn/confirmPassenger/initDc"
 	DTO_url ='https://kyfw.12306.cn/otn/confirmPassenger/getPassengerDTOs'
 	checkOrderInfo_url ='https://kyfw.12306.cn/otn/confirmPassenger/checkOrderInfo'
+	getQueue_url ='https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount'
+	confirmOrder_url = 'https://kyfw.12306.cn/otn/confirmPassenger/confirmSingleForQueue'
 
 
 	headers = {'Accept': '*/*',
