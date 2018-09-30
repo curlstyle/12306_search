@@ -415,11 +415,6 @@ class login_dialog(QDialog):
 					print(confirmOrder_res_json)
 					inormation_bool = confirmOrder_res_json['data']['submitStatus']
 					time.sleep(2)	
-				 
-
-
-
-
 
 		#my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
 		QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
