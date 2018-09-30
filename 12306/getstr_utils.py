@@ -108,7 +108,7 @@ def getPassengerTicketStr(userInfo,seat_type_codes):
         else:
             passengerTicketStr = Str
 
-    return passengerTicketStr+"_"
+    return passengerTicketStr
 
 
     

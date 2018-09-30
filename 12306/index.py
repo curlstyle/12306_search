@@ -314,13 +314,14 @@ class login_dialog(QDialog):
 			a1 = re.search(r'globalRepeatSubmitToken.+', initDc_res.text).group()
 			globalRepeatSubmitToken = re.sub(r'(globalRepeatSubmitToken)|(=)|(\s)|(;)|(\')', '', a1)
 			#print(globalRepeatSubmitToken)
-
+			#print(initDc_res.text)
 			a2 = re.search(r'queryLeftTicketRequestDTO\':([\s\S]*?);', initDc_res.text).group()
 			a3 = re.search(r'ypInfoDetail\':\'([\s\S]*?)\'', a2).group()
 			a4 = re.search(r'train_location\':\'([\s\S]*?)\'', a2).group()
 			leftTicketStr = re.sub(r'(ypInfoDetail)|(,)|(\s)|(;)|(\')|(:)', '', a3)
 			train_location = re.sub(r'(train_location)|(,)|(\s)|(;)|(\')|(:)', '', a4)
-
+			a5 = re.search(r'purpose_codes\':\'([\s\S]*?)\'', initDc_res.text).group()
+			purpose_codes = re.sub(r'(purpose_codes)|(,)|(\s)|(;)|(\')|(:)', '', a5)
 			key_str = re.search(r'key_check_isChange\':\'([\s\S]*?)\'', initDc_res.text).group()
 			key_check_isChange = re.sub(r'(key_check_isChange)|(,)|(\s)|(;)|(\')|(:)', '', key_str)
 			print(leftTicketStr)
@@ -380,20 +381,20 @@ class login_dialog(QDialog):
 				'fromStationTelecode': fromStationTelecode,
 				'toStationTelecode': toStationTelecode,
 				'leftTicket': leftTicketStr, 
-				'purpose_codes': 'ADULT', #默认取ADULT,表成人,学生表示为：0X00
+				'purpose_codes': purpose_codes, 
 				'train_location': train_location, 
 				'_json_att': '', 
 				'REPEAT_SUBMIT_TOKEN': globalRepeatSubmitToken
 				}
 				getQueue_res = my_session.post(getQueue_url,data=getQueue_data)
 				getQueue_res_json = json.loads(getQueue_res.text)
-				print(getQueue_res_json)
+
 
 				confirmOrder_data={
 				'passengerTicketStr': passengerTicketStr,  #选票人信息，获取过
 				'oldPassengerStr': oldPassengerStr,  #获取过
 				'randCode': '',     #随机值，空
-				"purpose_codes": 'ADULT',    #获取过
+				"purpose_codes": purpose_codes,    #获取过
 				"key_check_isChange": key_check_isChange,   #和REPEAT_SUBMIT_TOKEN一样在相同网页获取
 				"leftTicketStr": leftTicketStr,    #获取过
 				'train_location': train_location,     #获取过
@@ -405,18 +406,23 @@ class login_dialog(QDialog):
 				'whatsSelect': '1',      #固定值
 				"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
 				}
-				confirmOrder_res = my_session.post(confirmOrder_url,data=confirmOrder_data)
-				confirmOrder_res_json = json.loads(confirmOrder_res.text)
-				print(confirmOrder_res_json)
 
+				print(confirmOrder_data)
+				inormation_bool = False
+				while not inormation_bool:
+					confirmOrder_res = my_session.post(confirmOrder_url,data=confirmOrder_data)
+					confirmOrder_res_json = json.loads(confirmOrder_res.text)
+					print(confirmOrder_res_json)
+					inormation_bool = confirmOrder_res_json['data']['submitStatus']
+					time.sleep(2)	
 				 
 
 
 
 
 
-		my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
-		QMessageBox.information(self,"提醒","cookies储存成功！",QMessageBox.Yes)
+		#my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
+		QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
 		login_dialog.reject()
 
 class select_people_dialog(QDialog):
