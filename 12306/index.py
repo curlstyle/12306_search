@@ -143,9 +143,6 @@ class DialogWindow(QDialog):
 				if x==row_count:
 					seat_type_codes = seat_type_list[x-1]
 
-			
-			
-
 			if os.path.exists('cookie.txt')==True:
 				if os.path.getsize('cookie.txt')==0:
 					img_dialog.show()
@@ -224,7 +221,7 @@ class img_dialog(QDialog):
 		datas={"answer":image_utils.submit_captcha(ids),"login_site":"E","rand":"sjrand"}
 		check_url="https://kyfw.12306.cn/passport/captcha/captcha-check"
 		check_res=my_session.post(check_url,data=datas)
-		print(check_res.text)
+		#print(check_res.text)
 		if check_res.text[43:-2] == "4":
 			QMessageBox.information(self,"提醒",check_res.text[19:-20],QMessageBox.Yes)
 			login_dialog.show()
@@ -258,12 +255,12 @@ class login_dialog(QDialog):
 		uamtk_res=my_session.post(uamtk_url,data=data1)
 		if uamtk_res:
 			uamtk_res_json=json.loads(uamtk_res.text)
-			print(uamtk_res_json)
+			#print(uamtk_res_json)
 		
 		
 		data3={"_json_att":""}
 		use_res=my_session.post(user_url,data=data3)
-		print(use_res)
+		#print(use_res)
 		
 
 		try:
@@ -324,9 +321,9 @@ class login_dialog(QDialog):
 			purpose_codes = re.sub(r'(purpose_codes)|(,)|(\s)|(;)|(\')|(:)', '', a5)
 			key_str = re.search(r'key_check_isChange\':\'([\s\S]*?)\'', initDc_res.text).group()
 			key_check_isChange = re.sub(r'(key_check_isChange)|(,)|(\s)|(;)|(\')|(:)', '', key_str)
-			print(leftTicketStr)
-			print(train_location)
-			print(key_check_isChange)
+			#print(leftTicketStr)
+			#print(train_location)
+			#print(key_check_isChange)
 
 
 			##查询联系人信息
@@ -416,7 +413,7 @@ class login_dialog(QDialog):
 					inormation_bool = confirmOrder_res_json['data']['submitStatus']
 					time.sleep(2)	
 
-		#my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
+		my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
 		QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
 		login_dialog.reject()
 
@@ -464,7 +461,7 @@ class MainWindow(QMainWindow):
 		global stationTrainCode
 		stationTrainCode=item[0].text()
 
-		print(item[17].text())
+		#print(item[17].text())
 		if item[17].text()=="预订":
 			dialogWindow.show()
 			dialogWindow.item_set(item)
@@ -475,6 +472,9 @@ class MainWindow(QMainWindow):
 
 	def button_click(self):
 		# self.tableWidget.clearContents()
+		
+		#判断information_count是否初始化
+
 
 		row_count = self.tableWidget.rowCount()
 		for x in range(row_count):
@@ -488,14 +488,15 @@ class MainWindow(QMainWindow):
 			QMessageBox.warning(self,"警告","起始站和终点站不能为空!")
 		else:
 			start_time = self.dateEdit.text()
-			print(start_station,end_station,start_time)
+			#print(start_station,end_station,start_time)
 		train.Get_station_dit()
 		startStation_sx = train.Get_sx_by_station_name(start_station)
 		
 		endStation_sx = train.Get_sx_by_station_name(end_station)
-
-		train_dit = train.Get_train_information(startStation_sx,endStation_sx,start_time)
-
+		
+		global information_count
+		train_dit,information_count = train.Get_train_information(startStation_sx,endStation_sx,start_time,information_count)
+		
 		#赋值全局变量
 		global query_from_station_name
 		global query_to_station_name
@@ -557,7 +558,7 @@ class MainWindow(QMainWindow):
 		#self.tableWidget.setColumnHidden(23,True)
 
 if __name__ == "__main__":
-
+	information_count=0
 	login_url="https://kyfw.12306.cn/passport/web/login"
 	uamtk_url="https://kyfw.12306.cn/otn/uamauthclient"
 	Uamtk_url="https://kyfw.12306.cn/passport/web/auth/uamtk"

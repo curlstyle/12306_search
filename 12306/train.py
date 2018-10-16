@@ -27,8 +27,8 @@ class Station():
 		self.Station_name_jp=Station_name_jp #车站名称简拼
 		self.Station_name_num=Station_name_num #车站编号
 	def SetStation_show(self):
-		print(self.Station_name_y_num,self.Station_name,self.Station_name_sx,self.Station_name_qp,self.Station_name_jp,self.Station_name_num)
-
+		#print(self.Station_name_y_num,self.Station_name,self.Station_name_sx,self.Station_name_qp,self.Station_name_jp,self.Station_name_num)
+		pass
 # startStation=""
 # endStation=""
 def Get_station_dit():
@@ -46,7 +46,7 @@ def Get_station_dit():
 	station_name_list = station_name_list[start_index+1:end_index]
 
 	singleStation = station_name_list.split("@");
-	print(len(singleStation))
+	#print(len(singleStation))
 
 	for i in range(len(singleStation)-1):
 		singleStation_list = singleStation[i+1].split("|")
@@ -68,46 +68,71 @@ def Get_station_name_by_sx(station_name_sx):
 # startStation=""
 # endStation=""
 # startTime="" yyyy-MM-dd
-def Get_train_information(startStation_sx,endStation_sx,startTime):
+def Get_train_information(startStation_sx,endStation_sx,startTime,count):
+
+	
+	global information_json
+	global information_response
+	global information_count
+	global bools
+	global train_dit
 	train_dit={}
-	information_url = "https://kyfw.12306.cn/otn/leftTicket/queryA?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
-	print(information_url)
-	information_request = urllib.request.Request(information_url,None,headers)
-	information_response = urllib.request.urlopen(information_request,None,timeout=10)
+	bools = True
+	information_json=''
+	information_response=''
+	information_list=['','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+	information_url = "https://kyfw.12306.cn/otn/leftTicket/query"+information_list[count]+"?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
+	#information_url = "https://kyfw.12306.cn/otn/leftTicket/queryO?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
+	#print(information_url)
+	try:
+		information_request = urllib.request.Request(information_url,None,headers)
+		information_response = urllib.request.urlopen(information_request,None,timeout=10)
+	except:
+		information_count = count+1
+		Get_train_information(startStation_sx,endStation_sx,startTime,information_count)
+	
+
 	information_html = information_response.read()
 	information_soup = BeautifulSoup(information_html, "html.parser")
 	information_json = information_soup.string
+	# while information_json==None or information_json=='':
+		
+	# 	information_url = "https://kyfw.12306.cn/otn/leftTicket/query"+information_list[count]+"?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
+	# 	user_agent ='Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
+	# 	headers_test = {'User-Agent':user_agent}
+	# 	# proxy = {'http':'http://%s'%ipList[random.randint(0,(len(ipList)-1))]}
+	# 	# proxy_handler = urllib.request.ProxyHandler(proxy)
+	# 	# opener = urllib.request.build_opener(proxy_handler)
+	# 	# urllib.request.install_opener(opener)
+	# 	print(information_url)
+	# 	try:
+	# 		information_request = urllib.request.Request(information_url,None,headers)
+	# 		information_response = urllib.request.urlopen(information_request,None,timeout=10)
+	# 	except Exception as e:
+	# 		Get_train_information(startStation_sx,endStation_sx,startTime,count+1)
+		
+	# 	information_html = information_response.read()
 
-	while information_json==None:
-		user_agent ='Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.22 Safari/537.36 SE 2.X MetaSr 1.0'
-		headers_test = {'User-Agent':user_agent}
-		proxy = {'http':'http://%s'%ipList[random.randint(0,(len(ipList)-1))]}
-		proxy_handler = urllib.request.ProxyHandler(proxy)
-		opener = urllib.request.build_opener(proxy_handler)
-		urllib.request.install_opener(opener)
-
-		information_request = urllib.request.Request(information_url,None,headers)
-		information_response = urllib.request.urlopen(information_request,None,timeout=10)
-		information_html = information_response.read()
-
-		information_soup = BeautifulSoup(information_html, "html.parser")
-		information_json = information_soup.string
-		print(information_json)
-
-	try:
+	# 	information_soup = BeautifulSoup(information_html, "html.parser")
+	# 	information_json = information_soup.string
+	# 	print('information_json='+information_json)
+	if information_json==None:
+		if bools:
+			information_count = count+1
+			Get_train_information(startStation_sx,endStation_sx,startTime,information_count)
+	else:
 		information_html_json = json.loads(information_json)
-	except:
-		information_html_json = json.loads(information_json)
 
-	try:
-		train_information_data = information_html_json['data']
-		train_information = information_html_json['data']['result']
-		for i in range(len(train_information)):
-			train_information_list = train_information[i].split("|")
-			train_dit.update({train_information_list[3]:train_information_list})
-	except Exception as e:
-		print(information_html_json['messages'][0])
-	return train_dit
+		try:
+			train_information_data = information_html_json['data']
+			train_information = information_html_json['data']['result']
+			for i in range(len(train_information)):
+				train_information_list = train_information[i].split("|")
+				train_dit.update({train_information_list[3]:train_information_list})
+		except:
+			print(information_html_json['messages'][0])
+		bools= False
+	return train_dit,information_count
 
 
 # train_no=''
@@ -117,7 +142,7 @@ def Get_train_information(startStation_sx,endStation_sx,startTime):
 # train_date=''
 def Get_price_information(train_no,from_station_no,to_station_no,seat_types,train_date):
 	ticket_price_information_url = 'https://kyfw.12306.cn/otn/leftTicket/queryTicketPrice?train_no='+train_no+'&from_station_no='+from_station_no+'&to_station_no='+to_station_no+'&seat_types='+seat_types+'&train_date='+train_date
-	print(ticket_price_information_url)
+	#print(ticket_price_information_url)
 	#ticket_price_information_url = 'https://kyfw.12306.cn/otn/leftTicket/queryTicketPrice?train_no=760000D63805&from_station_no=01&to_station_no=25&seat_types=OMO&train_date=2018-07-10'
 	ticket_price_information_request = urllib.request.Request(ticket_price_information_url,None,headers)
 	ticket_price_information_response = urllib.request.urlopen(ticket_price_information_request,None,timeout=10)
