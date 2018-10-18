@@ -80,7 +80,7 @@ def Get_train_information(startStation_sx,endStation_sx,startTime,count):
 	bools = True
 	information_json=''
 	information_response=''
-	information_list=['','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+	information_list=['','A','O','B','C','D','E','F','G','H','I','J','K','L','M','N','P','Q','R','S','T','U','V','W','X','Y','Z']
 	information_url = "https://kyfw.12306.cn/otn/leftTicket/query"+information_list[count]+"?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
 	#information_url = "https://kyfw.12306.cn/otn/leftTicket/queryO?leftTicketDTO.train_date="+startTime+"&leftTicketDTO.from_station="+startStation_sx+"&leftTicketDTO.to_station="+endStation_sx+"&purpose_codes=ADULT"
 	#print(information_url)

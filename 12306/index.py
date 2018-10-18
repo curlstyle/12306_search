@@ -16,6 +16,7 @@ import urllib.parse
 import re
 import getstr_utils
 import time_utils
+import buy_ticket
 
 class DialogWindow(QDialog):
 	def __init__(self):
@@ -149,13 +150,97 @@ class DialogWindow(QDialog):
 					img_dialog.get_captcha_image()
 				else:
 					my_session.cookies.load('cookie.txt', ignore_discard=True, ignore_expires=True)
-					#此用opener的open方法打开网页
-					response = my_session.get(checkUser_url,headers=headers,cookies=my_session.cookies,verify=False)
-					str_json = json.loads(response.text)
-					if str_json['data']['flag']== 'False':
+					handler=urllib.request.HTTPCookieProcessor(my_session.cookies)
+					opener = urllib.request.build_opener(handler)
+					response = opener.open(checkUser_url)
+					text_html = response.read().decode('utf-8')
+					str_json = json.loads(text_html)
+					print(str_json)
+					if str_json['data']['flag']== False:
 						QMessageBox.information(self,"提醒","cookie已过期，请重新登录",QMessageBox.Yes)	
 						img_dialog.show()
 						img_dialog.get_captcha_image()
+					if str_json['data']['flag']== True:
+						QMessageBox.information(self,"提醒","cookie登录成功,点击确认开始购票",QMessageBox.Yes)
+						order_data={
+						"secretStr":urllib.parse.unquote(secretStr),
+						"train_date":train_date,
+						"back_train_date":back_train_date,
+						"tour_flag": "dc",
+						"purpose_codes":  "ADULT",
+						"query_from_station_name":query_from_station_name,
+						"query_to_station_name":query_to_station_name
+						}
+						print(order_data)
+						buy_ticket.postOrder(my_session,order_url,order_data)
+						global DTO_res_json
+						DTO_res_json,globalRepeatSubmitToken,purpose_codes,key_check_isChange,leftTicketStr,train_location = buy_ticket.get_initDc(my_session,initDc_url,DTO_url)
+						if DTO_res_json['data']['isExist'] == True:
+							self.select_people_dialog = select_people_dialog()
+							self.select_people_dialog.exec_()
+							passengerTicketStr = getstr_utils.getPassengerTicketStr(people_list,seat_type_codes)
+							oldPassengerStr = getstr_utils.getOldPassengerStr(people_list)
+							#tour_flag: {dc: "dc", wc: "wc", fc: "fc", gc: "gc", lc: "lc", lc1: "l1", lc2: "l2"},
+							checkOrderInfo_data={
+								'cancel_flag':'2',
+								'bed_level_order_num':'000000000000000000000000000000',
+								'passengerTicketStr':passengerTicketStr,
+								'oldPassengerStr':oldPassengerStr,
+								'tour_flag':'dc',
+								'randCode':'',
+								'whatsSelect':'1',
+								'_json_att':'',
+								"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
+
+							}
+							print(checkOrderInfo_data)
+							checkOrder_res = my_session.post(checkOrderInfo_url,data=checkOrderInfo_data)
+							checkOrder_res_json = json.loads(checkOrder_res.text)
+						#{'train_date': 'Mon Jan  1 2018 00:00:00 GMT+0800 (中国标准时间)', 
+						# 'train_no': '78000K95180E',
+						#  'stationTrainCode': 'K9518',
+						#  'seatType': '3',
+						#  'fromStationTelecode': 'GIW',
+						#  'toStationTelecode': 'ZIW',
+						#  'leftTicket': 'fRHQaP8JPYKHxyvfihr70ZJYDi2VYncf4DPG%2FWI6ZmA4DYyN', 
+						# 'purpose_codes': '00', 
+						# 'train_location': 'W2', 
+						# '_json_att': '', 
+						# 'REPEAT_SUBMIT_TOKEN': 'a8faf49bca59d540d55662d1692a7dc4'}
+							getQueue_data = {
+							'train_date': time_utils.fmt_time(train_date), 
+							'train_no': train_no,
+							'stationTrainCode': stationTrainCode,
+							'seatType': seat_type_codes,
+							'fromStationTelecode': fromStationTelecode,
+							'toStationTelecode': toStationTelecode,
+							'leftTicket': leftTicketStr, 
+							'purpose_codes': purpose_codes, 
+							'train_location': train_location, 
+							'_json_att': '', 
+							'REPEAT_SUBMIT_TOKEN': globalRepeatSubmitToken
+							}
+							buy_ticket.getQueue(my_session,getQueue_url,getQueue_data)
+							confirmOrder_data={
+							'passengerTicketStr': passengerTicketStr,  #选票人信息，获取过
+							'oldPassengerStr': oldPassengerStr,  #获取过
+							'randCode': '',     #随机值，空
+							"purpose_codes": purpose_codes,    #获取过
+							"key_check_isChange": key_check_isChange,   #和REPEAT_SUBMIT_TOKEN一样在相同网页获取
+							"leftTicketStr": leftTicketStr,    #获取过
+							'train_location': train_location,     #获取过
+							'choose_seats':'',       #座位类型，一般是高铁用
+							'roomType': '00',     #固定值
+							'dwAll': 'N',       #固定值
+							"_json_att": "",  #空
+							'seatDetailType':'000',       #固定值
+							'whatsSelect': '1',      #固定值
+							"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
+							}
+							print(confirmOrder_data)
+								
+							buy_ticket.confirmOrder(my_session,confirmOrder_url,confirmOrder_data)
+							QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
 			else:
 				img_dialog.show()
 				img_dialog.get_captcha_image()
@@ -271,70 +356,35 @@ class login_dialog(QDialog):
 		res_json = json.loads(check_res.text)
 
 		if res_json['data']['flag']== False:
-			QMessageBox.information(self,"提醒","登录失败！",QMessageBox.Yes)
+			QMessageBox.information(self,"提醒","登录失败,请重新输入账号密码！",QMessageBox.Yes)
+			login_dialog.exec()
 
 		elif res_json['data']['flag']== True:
 			QMessageBox.information(self,"提醒","登录成功！",QMessageBox.Yes)
-
-	# "secretStr" 车次,需要进行解码
-   #   "train_date": 出发日期
-   #   "back_train_date"  返回日期
-   #   "tour_flag": "dc"  单程/ 往返(wc)
-   #   "purpose_codes":  "ADULT"  普通/学生(0X00)
-   #   "query_from_stati":  出发车站 ，可以在查询车次接口中得到
-   #   "query_to_station":  返回车站，  可以在查询车次接口中得到
-   #   "undefined": ""  应该是跟返回数据相关
-
-
-
-		order_data={
-		"secretStr":urllib.parse.unquote(secretStr),
-		"train_date":train_date,
-		"back_train_date":back_train_date,
-		"tour_flag": "dc",
-		"purpose_codes":  "ADULT",
-		"query_from_station_name":query_from_station_name,
-		"query_to_station_name":query_to_station_name
-		}
-
-		order_res = my_session.post(order_url,data=order_data)
-
-		order_res_json = json.loads(order_res.text)
-		print(order_res_json)
-
-		initDc_data = {
-			"_json_att": ""
-		}
-		initDc_res = my_session.post(initDc_url,data=initDc_data)
-
-		if initDc_res.status_code == requests.codes.ok:
-			a1 = re.search(r'globalRepeatSubmitToken.+', initDc_res.text).group()
-			globalRepeatSubmitToken = re.sub(r'(globalRepeatSubmitToken)|(=)|(\s)|(;)|(\')', '', a1)
-			#print(globalRepeatSubmitToken)
-			#print(initDc_res.text)
-			a2 = re.search(r'queryLeftTicketRequestDTO\':([\s\S]*?);', initDc_res.text).group()
-			a3 = re.search(r'ypInfoDetail\':\'([\s\S]*?)\'', a2).group()
-			a4 = re.search(r'train_location\':\'([\s\S]*?)\'', a2).group()
-			leftTicketStr = re.sub(r'(ypInfoDetail)|(,)|(\s)|(;)|(\')|(:)', '', a3)
-			train_location = re.sub(r'(train_location)|(,)|(\s)|(;)|(\')|(:)', '', a4)
-			a5 = re.search(r'purpose_codes\':\'([\s\S]*?)\'', initDc_res.text).group()
-			purpose_codes = re.sub(r'(purpose_codes)|(,)|(\s)|(;)|(\')|(:)', '', a5)
-			key_str = re.search(r'key_check_isChange\':\'([\s\S]*?)\'', initDc_res.text).group()
-			key_check_isChange = re.sub(r'(key_check_isChange)|(,)|(\s)|(;)|(\')|(:)', '', key_str)
-			#print(leftTicketStr)
-			#print(train_location)
-			#print(key_check_isChange)
-
-
-			##查询联系人信息
-			DTO_data = {
-					"_json_att": "",
-					"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
+			# ignore_discard:  即保存需要被丢弃的cookie。
+			# ignore_expires:  即过期的cookie也保存。
+			my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
+			# 	"secretStr" 车次,需要进行解码
+			#   "train_date": 出发日期
+			#   "back_train_date"  返回日期
+			#   "tour_flag": "dc"  单程/ 往返(wc)
+			#   "purpose_codes":  "ADULT"  普通/学生(0X00)
+			#   "query_from_stati":  出发车站 ，可以在查询车次接口中得到
+			#   "query_to_station":  返回车站，  可以在查询车次接口中得到
+			#   "undefined": ""  应该是跟返回数据相关
+			order_data={
+			"secretStr":urllib.parse.unquote(secretStr),
+			"train_date":train_date,
+			"back_train_date":back_train_date,
+			"tour_flag": "dc",
+			"purpose_codes":  "ADULT",
+			"query_from_station_name":query_from_station_name,
+			"query_to_station_name":query_to_station_name
 			}
-			DTO_res = my_session.post(DTO_url,data=DTO_data)
+			print(order_data)
+			buy_ticket.postOrder(my_session,order_url,order_data)
 			global DTO_res_json
-			DTO_res_json = json.loads(DTO_res.text)
-
+			DTO_res_json,globalRepeatSubmitToken,purpose_codes,key_check_isChange,leftTicketStr,train_location = buy_ticket.get_initDc(my_session, initDc_url,DTO_url)
 			if DTO_res_json['data']['isExist'] == True:
 				self.select_people_dialog = select_people_dialog()
 				self.select_people_dialog.exec_()
@@ -355,21 +405,17 @@ class login_dialog(QDialog):
 				}
 				checkOrder_res = my_session.post(checkOrderInfo_url,data=checkOrderInfo_data)
 				checkOrder_res_json = json.loads(checkOrder_res.text)
-				
-				
-# 				{'train_date': 'Mon Jan  1 2018 00:00:00 GMT+0800 (中国标准时间)', 'train_no': '78000K95180E',
-#  'stationTrainCode': 'K9518',
-#  'seatType': '3',
-#  'fromStationTelecode': 'GIW',
-#  'toStationTelecode': 'ZIW',
-#  'leftTicket': 'fRHQaP8JPYKHxyvfihr70ZJYDi2VYncf4DPG%2FWI6ZmA4DYyN', 
-# 'purpose_codes': '00', 
-# 'train_location': 'W2', 
-# '_json_att': '', 
-# 'REPEAT_SUBMIT_TOKEN': 'a8faf49bca59d540d55662d1692a7dc4'}
-
-
-
+			#{'train_date': 'Mon Jan  1 2018 00:00:00 GMT+0800 (中国标准时间)', 
+			# 'train_no': '78000K95180E',
+			#  'stationTrainCode': 'K9518',
+			#  'seatType': '3',
+			#  'fromStationTelecode': 'GIW',
+			#  'toStationTelecode': 'ZIW',
+			#  'leftTicket': 'fRHQaP8JPYKHxyvfihr70ZJYDi2VYncf4DPG%2FWI6ZmA4DYyN', 
+			# 'purpose_codes': '00', 
+			# 'train_location': 'W2', 
+			# '_json_att': '', 
+			# 'REPEAT_SUBMIT_TOKEN': 'a8faf49bca59d540d55662d1692a7dc4'}
 				getQueue_data = {
 				'train_date': time_utils.fmt_time(train_date), 
 				'train_no': train_no,
@@ -383,10 +429,7 @@ class login_dialog(QDialog):
 				'_json_att': '', 
 				'REPEAT_SUBMIT_TOKEN': globalRepeatSubmitToken
 				}
-				getQueue_res = my_session.post(getQueue_url,data=getQueue_data)
-				getQueue_res_json = json.loads(getQueue_res.text)
-
-
+				buy_ticket.getQueue(my_session,getQueue_url,getQueue_data)
 				confirmOrder_data={
 				'passengerTicketStr': passengerTicketStr,  #选票人信息，获取过
 				'oldPassengerStr': oldPassengerStr,  #获取过
@@ -403,19 +446,15 @@ class login_dialog(QDialog):
 				'whatsSelect': '1',      #固定值
 				"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
 				}
-
 				print(confirmOrder_data)
-				inormation_bool = False
-				while not inormation_bool:
-					confirmOrder_res = my_session.post(confirmOrder_url,data=confirmOrder_data)
-					confirmOrder_res_json = json.loads(confirmOrder_res.text)
-					print(confirmOrder_res_json)
-					inormation_bool = confirmOrder_res_json['data']['submitStatus']
-					time.sleep(2)	
+					
+				buy_ticket.confirmOrder(my_session,confirmOrder_url,confirmOrder_data)
 
-		my_session.cookies.save('cookie.txt', ignore_discard=True, ignore_expires=True)
-		QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
-		login_dialog.reject()
+
+	
+
+				QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
+				login_dialog.reject()
 
 class select_people_dialog(QDialog):
 	
@@ -590,8 +629,8 @@ if __name__ == "__main__":
 	# query_to_station_name  #返回车站
 
 
-	my_session=requests.session() 
-	my_session.cookies = cookielib.LWPCookieJar(filename = "cookie.txt")		
+	my_session=requests.session()
+	my_session.cookies = cookielib.LWPCookieJar()
 	app=0 #This is the solution 
 	app = QApplication(sys.argv)
 	w = MainWindow()

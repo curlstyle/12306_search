@@ -7,7 +7,6 @@ import random
 def main(count):
 	global bools
 	bools = True
-	print(count)
 	train_dit={}
 	global information_json
 	global information_response
