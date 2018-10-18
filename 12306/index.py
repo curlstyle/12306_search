@@ -17,6 +17,9 @@ import re
 import getstr_utils
 import time_utils
 import buy_ticket
+import send_email
+import smtplib
+from email.mime.text import MIMEText 
 
 class DialogWindow(QDialog):
 	def __init__(self):
@@ -238,9 +241,21 @@ class DialogWindow(QDialog):
 							"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
 							}
 							print(confirmOrder_data)
-								
+							
 							buy_ticket.confirmOrder(my_session,confirmOrder_url,confirmOrder_data)
+							if os.path.exists('Email.txt')==True and os.path.getsize('Email.txt')!=0:
+								host = 'smtp.qq.com'  
+								username = '978726321@qq.com'  
+								passwd = 'gtskanozhqstbfjh'  
+								to_list = []  
+								subject = "预定成功"  
+								content = '您所预定的'+stationTrainCode+'车票已成功' 
+								with open('Email.txt','r',encoding='utf-8') as f:
+									Email_data = f.read()
+									to_list.append(Email_data)
+								send_email.send_email(host,username,passwd,to_list,subject,content)
 							QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
+							login_dialog.reject()
 			else:
 				img_dialog.show()
 				img_dialog.get_captcha_image()
@@ -449,10 +464,17 @@ class login_dialog(QDialog):
 				print(confirmOrder_data)
 					
 				buy_ticket.confirmOrder(my_session,confirmOrder_url,confirmOrder_data)
-
-
-	
-
+				if os.path.exists('Email.txt')==True and os.path.getsize('Email.txt')!=0:
+					host = 'smtp.qq.com'  
+					username = '978726321@qq.com'  
+					passwd = 'gtskanozhqstbfjh'  
+					to_list = []  
+					subject = "预定成功"  
+					content = '您所预定的'+stationTrainCode+'车票已成功' 
+					with open('Email.txt','r',encoding='utf-8') as f:
+						Email_data = f.read()
+						to_list.append(Email_data)
+					send_email.send_email(host,username,passwd,to_list,subject,content)
 				QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
 				login_dialog.reject()
 
@@ -476,6 +498,27 @@ class select_people_dialog(QDialog):
     		QMessageBox.information(self,"提醒","请勾选联系人！",QMessageBox.Yes)
     	else:	
     		self.reject()
+class emailDialog(QDialog):
+	"""docstring for ClassName"""
+	def __init__(self):
+		super(emailDialog, self).__init__()
+		loadUi('email_dialog.ui',self)
+		if os.path.exists('Email.txt')==True and os.path.getsize('Email.txt')!=0:
+			with open('Email.txt','r',encoding='utf-8') as f:
+				Email_data=f.read()
+				self.lineEdit.setText(Email_data)
+		else:
+			self.lineEdit.setText('')
+	def accept(self):
+		Email_data=self.lineEdit.text()
+		a = re.match(r'[\w!#$%&\'*+/=?^_`{|}~-]+(?:\.[\w!#$%&\'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?', Email_data)
+		if a==None:
+			QMessageBox.information(self,"提醒","请输入正确的Email！",QMessageBox.Yes)
+		else:
+			QMessageBox.information(self,"提醒","保存成功，信息已保存在Email.txt文件中！",QMessageBox.Yes)
+			with open('Email.txt','w',encoding='utf-8') as f:
+				f.write(Email_data)
+			self.reject()
 
 class MainWindow(QMainWindow):
 	def __init__(self, parent=None):
@@ -490,8 +533,9 @@ class MainWindow(QMainWindow):
 		self.tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
 		self.tableWidget.setSelectionBehavior(QTableWidget.SelectRows)#设置选择行为，以行为单位
 		self.tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
-
-		
+		self.action.triggered.connect(self.setEmail)
+	def setEmail(self):
+		emailDialog.exec_()	
 
 	def item_DoubleClick(self):
 		
@@ -637,7 +681,7 @@ if __name__ == "__main__":
 	dialogWindow = DialogWindow()
 	img_dialog=img_dialog()
 	login_dialog=login_dialog()
-
+	emailDialog = emailDialog()
 	w.show()
 	sys.exit(app.exec())
 
