@@ -73,7 +73,7 @@ def Get_train_information(startStation_sx,endStation_sx,startTime,count):
 	
 	global information_json
 	global information_response
-	global information_count
+
 	global bools
 	global train_dit
 	train_dit={}
@@ -88,8 +88,8 @@ def Get_train_information(startStation_sx,endStation_sx,startTime,count):
 		information_request = urllib.request.Request(information_url,None,headers)
 		information_response = urllib.request.urlopen(information_request,None,timeout=10)
 	except:
-		information_count = count+1
-		Get_train_information(startStation_sx,endStation_sx,startTime,information_count)
+		count = count+1
+		Get_train_information(startStation_sx,endStation_sx,startTime,count)
 	
 
 	information_html = information_response.read()
@@ -118,8 +118,8 @@ def Get_train_information(startStation_sx,endStation_sx,startTime,count):
 	# 	print('information_json='+information_json)
 	if information_json==None:
 		if bools:
-			information_count = count+1
-			Get_train_information(startStation_sx,endStation_sx,startTime,information_count)
+			count = count+1
+			Get_train_information(startStation_sx,endStation_sx,startTime,count)
 	else:
 		information_html_json = json.loads(information_json)
 
@@ -132,7 +132,7 @@ def Get_train_information(startStation_sx,endStation_sx,startTime,count):
 		except:
 			print(information_html_json['messages'][0])
 		bools= False
-	return train_dit,information_count
+	return train_dit,count
 
 
 # train_no=''

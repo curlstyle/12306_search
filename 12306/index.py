@@ -521,6 +521,8 @@ class emailDialog(QDialog):
 			self.reject()
 
 class MainWindow(QMainWindow):
+	information_count=0
+
 	def __init__(self, parent=None):
 		super(MainWindow, self).__init__(parent)
 		loadUi('12306.ui', self)
@@ -534,6 +536,8 @@ class MainWindow(QMainWindow):
 		self.tableWidget.setSelectionBehavior(QTableWidget.SelectRows)#设置选择行为，以行为单位
 		self.tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
 		self.action.triggered.connect(self.setEmail)
+		
+		information_count=0
 	def setEmail(self):
 		emailDialog.exec_()	
 
@@ -555,10 +559,10 @@ class MainWindow(QMainWindow):
 
 	def button_click(self):
 		# self.tableWidget.clearContents()
-		
+
 		#判断information_count是否初始化
 
-
+		print(MainWindow.information_count)
 		row_count = self.tableWidget.rowCount()
 		for x in range(row_count):
 			row_count1 = self.tableWidget.rowCount()
@@ -566,6 +570,8 @@ class MainWindow(QMainWindow):
 		
 		start_station = self.lineEdit.text()#.isEmpty() 
 		end_station = self.lineEdit_2.text()
+		starttime = self.timeEdit.text()
+		endtime = self.timeEdit_2.text()
 
 		if start_station=="" or end_station=="":
 			QMessageBox.warning(self,"警告","起始站和终点站不能为空!")
@@ -576,9 +582,9 @@ class MainWindow(QMainWindow):
 		startStation_sx = train.Get_sx_by_station_name(start_station)
 		
 		endStation_sx = train.Get_sx_by_station_name(end_station)
-		
-		global information_count
-		train_dit,information_count = train.Get_train_information(startStation_sx,endStation_sx,start_time,information_count)
+
+		# global information_count
+		train_dit,MainWindow.information_count = train.Get_train_information(startStation_sx,endStation_sx,start_time,MainWindow.information_count)
 		
 		#赋值全局变量
 		global query_from_station_name
@@ -592,56 +598,58 @@ class MainWindow(QMainWindow):
 		fromStationTelecode = startStation_sx
 		toStationTelecode = endStation_sx
 		count = 0
-		for i in train_dit.keys():
 
-			self.tableWidget.insertRow(count)
-			self.tableWidget.setItem(count,0, QTableWidgetItem(train_dit[i][3]))
-			self.tableWidget.setItem(count,1, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][4])))
-			self.tableWidget.setItem(count,2, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][5])))
-			self.tableWidget.setItem(count,3, QTableWidgetItem(train_dit[i][8]))
-			self.tableWidget.setItem(count,4, QTableWidgetItem(train_dit[i][9]))
-			self.tableWidget.setItem(count,5, QTableWidgetItem(train_dit[i][10]))
-			#特等座
-			self.tableWidget.setItem(count,6, QTableWidgetItem(train_dit[i][32]))
-			#一等座
-			self.tableWidget.setItem(count,7, QTableWidgetItem(train_dit[i][31]))
-			#二等座
-			self.tableWidget.setItem(count,8, QTableWidgetItem(train_dit[i][30]))
-			#高级软卧
-			self.tableWidget.setItem(count,9, QTableWidgetItem(train_dit[i][21]))
-			#软卧
-			self.tableWidget.setItem(count,10, QTableWidgetItem(train_dit[i][23]))
-			#动卧
-			self.tableWidget.setItem(count,11, QTableWidgetItem(train_dit[i][33]))
-			#硬卧
-			self.tableWidget.setItem(count,12, QTableWidgetItem(train_dit[i][28]))
-			#软座
-			self.tableWidget.setItem(count,13, QTableWidgetItem(train_dit[i][24]))
-			#硬座
-			self.tableWidget.setItem(count,14, QTableWidgetItem(train_dit[i][29]))
-			#无座
-			self.tableWidget.setItem(count,15, QTableWidgetItem(train_dit[i][26]))
-			#其他
-			self.tableWidget.setItem(count,16, QTableWidgetItem(train_dit[i][22]))
-			#备注
-			self.tableWidget.setItem(count,17, QTableWidgetItem(train_dit[i][1]))
-			#始发站编号
-			self.tableWidget.setItem(count,18, QTableWidgetItem(train_dit[i][16]))
-			#到达站编号
-			self.tableWidget.setItem(count,19, QTableWidgetItem(train_dit[i][17]))
-			#车辆编号
-			self.tableWidget.setItem(count,20, QTableWidgetItem(train_dit[i][2]))
-			#票价编号
-			self.tableWidget.setItem(count,21, QTableWidgetItem(train_dit[i][35]))
-			#出发日期
-			self.tableWidget.setItem(count,22, QTableWidgetItem(start_time))
-			self.tableWidget.setItem(count,23, QTableWidgetItem(train_dit[i][0]))
-			count+=1
+		for i in train_dit.keys():
+			
+			if time_utils.compare_mid_time(starttime,endtime,train_dit[i][8]):
+				self.tableWidget.insertRow(count)
+				self.tableWidget.setItem(count,0, QTableWidgetItem(train_dit[i][3]))
+				self.tableWidget.setItem(count,1, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][4])))
+				self.tableWidget.setItem(count,2, QTableWidgetItem(train.Get_station_name_by_sx(train_dit[i][5])))
+				self.tableWidget.setItem(count,3, QTableWidgetItem(train_dit[i][8]))
+				self.tableWidget.setItem(count,4, QTableWidgetItem(train_dit[i][9]))
+				self.tableWidget.setItem(count,5, QTableWidgetItem(train_dit[i][10]))
+				#特等座
+				self.tableWidget.setItem(count,6, QTableWidgetItem(train_dit[i][32]))
+				#一等座
+				self.tableWidget.setItem(count,7, QTableWidgetItem(train_dit[i][31]))
+				#二等座
+				self.tableWidget.setItem(count,8, QTableWidgetItem(train_dit[i][30]))
+				#高级软卧
+				self.tableWidget.setItem(count,9, QTableWidgetItem(train_dit[i][21]))
+				#软卧
+				self.tableWidget.setItem(count,10, QTableWidgetItem(train_dit[i][23]))
+				#动卧
+				self.tableWidget.setItem(count,11, QTableWidgetItem(train_dit[i][33]))
+				#硬卧
+				self.tableWidget.setItem(count,12, QTableWidgetItem(train_dit[i][28]))
+				#软座
+				self.tableWidget.setItem(count,13, QTableWidgetItem(train_dit[i][24]))
+				#硬座
+				self.tableWidget.setItem(count,14, QTableWidgetItem(train_dit[i][29]))
+				#无座
+				self.tableWidget.setItem(count,15, QTableWidgetItem(train_dit[i][26]))
+				#其他
+				self.tableWidget.setItem(count,16, QTableWidgetItem(train_dit[i][22]))
+				#备注
+				self.tableWidget.setItem(count,17, QTableWidgetItem(train_dit[i][1]))
+				#始发站编号
+				self.tableWidget.setItem(count,18, QTableWidgetItem(train_dit[i][16]))
+				#到达站编号
+				self.tableWidget.setItem(count,19, QTableWidgetItem(train_dit[i][17]))
+				#车辆编号
+				self.tableWidget.setItem(count,20, QTableWidgetItem(train_dit[i][2]))
+				#票价编号
+				self.tableWidget.setItem(count,21, QTableWidgetItem(train_dit[i][35]))
+				#出发日期
+				self.tableWidget.setItem(count,22, QTableWidgetItem(start_time))
+				self.tableWidget.setItem(count,23, QTableWidgetItem(train_dit[i][0]))
+				count+=1
 
 		#self.tableWidget.setColumnHidden(23,True)
 
 if __name__ == "__main__":
-	information_count=0
+
 	login_url="https://kyfw.12306.cn/passport/web/login"
 	uamtk_url="https://kyfw.12306.cn/otn/uamauthclient"
 	Uamtk_url="https://kyfw.12306.cn/passport/web/auth/uamtk"
