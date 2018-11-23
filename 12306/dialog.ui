@@ -123,6 +123,31 @@
     <string>购票</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="pushButton_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>405</y>
+     <width>75</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>抢票</string>
+   </property>
+   <property name="autoRepeat">
+    <bool>false</bool>
+   </property>
+   <property name="autoDefault">
+    <bool>true</bool>
+   </property>
+   <property name="default">
+    <bool>false</bool>
+   </property>
+   <property name="flat">
+    <bool>false</bool>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections>
@@ -174,8 +199,42 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>dialog_tableWidget</sender>
+   <signal>clicked(QModelIndex)</signal>
+   <receiver>Dialog</receiver>
+   <slot>row_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>172</x>
+     <y>32</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_2</sender>
+   <signal>clicked()</signal>
+   <receiver>Dialog</receiver>
+   <slot>snatch_ticket()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>54</x>
+     <y>413</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>101</x>
+     <y>385</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>buy_ticket()</slot>
+  <slot>row_click()</slot>
+  <slot>snatch_ticket()</slot>
  </slots>
 </ui>

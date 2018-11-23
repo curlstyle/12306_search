@@ -3,7 +3,7 @@ import train
 from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import *
-from PyQt5.QtGui import QFont,QColor,QBrush,QPixmap
+from PyQt5.QtGui import QFont,QColor,QBrush,QPixmap,QMovie
 from train import *
 import  requests
 from PIL import Image
@@ -20,15 +20,17 @@ import buy_ticket
 import send_email
 import smtplib
 from email.mime.text import MIMEText 
+from concurrent.futures import ThreadPoolExecutor
 
 class DialogWindow(QDialog):
 	def __init__(self):
 		super(DialogWindow, self).__init__()
 		loadUi('dialog.ui', self)
-
+		self.pushButton_2.hide()
 		self.dialog_tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
 		self.dialog_tableWidget.setSelectionBehavior(QTableWidget.SelectRows)#设置选择行为，以行为单位
 		self.dialog_tableWidget.setSelectionMode(QTableWidget.SingleSelection)#设置选择模式，选择单行
+
 	def item_set(self,item):
 
 		start_no = item[18].text()
@@ -124,13 +126,29 @@ class DialogWindow(QDialog):
 		else:
 			self.dialog_tableWidget.setItem(10,0, QTableWidgetItem(""))
 			self.dialog_tableWidget.setItem(10,1, QTableWidgetItem(""))
+		
+	def row_click(self):
+		ticket_item = self.dialog_tableWidget.selectedItems()
+		if ticket_item[0].text()=='无':
+			self.pushButton_2.setHidden(False)
+		else:
+			self.pushButton_2.setHidden(True)
+		# print(self.pushButton_2.visible)
+		
+	def snatch_ticket(self):
 
-
+		global seat_type_codes
+		seat_type_list = ['P','M','O','6','4','5','3','2','1','1','0']
+		dialog_count = self.dialog_tableWidget.rowCount()#总行数
+		row_count = self.dialog_tableWidget.currentRow()+1 #当前选中行行号(从1开始)
+		for x in range(1,dialog_count):
+			if x==row_count:
+				seat_type_codes = seat_type_list[x-1]
+		img_dialog.show()
+		img_dialog.get_captcha_image()
 
 	def buy_ticket(self):
 		ticket_item = self.dialog_tableWidget.selectedItems()
-
-
 		if ticket_item == []:
 			QMessageBox.information(self,"提醒","请选择票务种类！",QMessageBox.Yes)	
 		if ticket_item[0].text()=='':
@@ -240,9 +258,10 @@ class DialogWindow(QDialog):
 							'whatsSelect': '1',      #固定值
 							"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
 							}
-							print(confirmOrder_data)
+							
 							
 							buy_ticket.confirmOrder(my_session,confirmOrder_url,confirmOrder_data)
+							
 							if os.path.exists('Email.txt')==True and os.path.getsize('Email.txt')!=0:
 								host = 'smtp.qq.com'  
 								username = '978726321@qq.com'  
@@ -338,6 +357,7 @@ class login_dialog(QDialog):
 		loadUi('login_dialog.ui', self)
 
 	def accept(self):
+		self.loadDialog = loadDialog()
 		username = self.lineEdit_1.text()
 		password = self.lineEdit_2.text()
 
@@ -361,15 +381,13 @@ class login_dialog(QDialog):
 		data3={"_json_att":""}
 		use_res=my_session.post(user_url,data=data3)
 		#print(use_res)
-		
-
 		try:
 			check_res = my_session.get(checkUser_url,timeout = 5)
 		except :
 			check_res = my_session.get(checkUser_url,timeout = 10)
 		
 		res_json = json.loads(check_res.text)
-
+		print('res_json',res_json)
 		if res_json['data']['flag']== False:
 			QMessageBox.information(self,"提醒","登录失败,请重新输入账号密码！",QMessageBox.Yes)
 			login_dialog.exec()
@@ -396,7 +414,7 @@ class login_dialog(QDialog):
 			"query_from_station_name":query_from_station_name,
 			"query_to_station_name":query_to_station_name
 			}
-			print(order_data)
+			print('order_data',order_data)
 			buy_ticket.postOrder(my_session,order_url,order_data)
 			global DTO_res_json
 			DTO_res_json,globalRepeatSubmitToken,purpose_codes,key_check_isChange,leftTicketStr,train_location = buy_ticket.get_initDc(my_session, initDc_url,DTO_url)
@@ -418,8 +436,14 @@ class login_dialog(QDialog):
 					"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken 
 
 				}
-				checkOrder_res = my_session.post(checkOrderInfo_url,data=checkOrderInfo_data)
-				checkOrder_res_json = json.loads(checkOrder_res.text)
+				
+				
+				self.loadDialog.show()
+				with ThreadPoolExecutor(max_workers=5) as executor:
+					executor.submit(buy_ticket.checkOrder,my_session,checkOrderInfo_url,checkOrderInfo_data)
+					# time.sleep(1)
+
+
 			#{'train_date': 'Mon Jan  1 2018 00:00:00 GMT+0800 (中国标准时间)', 
 			# 'train_no': '78000K95180E',
 			#  'stationTrainCode': 'K9518',
@@ -461,9 +485,10 @@ class login_dialog(QDialog):
 				'whatsSelect': '1',      #固定值
 				"REPEAT_SUBMIT_TOKEN": globalRepeatSubmitToken,     #获取过
 				}
-				print(confirmOrder_data)
-					
+				
+				
 				buy_ticket.confirmOrder(my_session,confirmOrder_url,confirmOrder_data)
+				self.loadDialog.close()
 				if os.path.exists('Email.txt')==True and os.path.getsize('Email.txt')!=0:
 					host = 'smtp.qq.com'  
 					username = '978726321@qq.com'  
@@ -477,6 +502,16 @@ class login_dialog(QDialog):
 					send_email.send_email(host,username,passwd,to_list,subject,content)
 				QMessageBox.information(self,"提醒","购票成功！",QMessageBox.Yes)
 				login_dialog.reject()
+
+class loadDialog(QDialog):
+	"""docstring for loadDialog"""
+	def __init__(self):
+		super(loadDialog, self).__init__()
+		loadUi('load.ui', self)
+		pm = QMovie("img/load.gif")
+		self.label_2.setMovie(pm)
+		pm.start()
+		self.label_2.show()
 
 class select_people_dialog(QDialog):
 	
@@ -686,10 +721,11 @@ if __name__ == "__main__":
 	app=0 #This is the solution 
 	app = QApplication(sys.argv)
 	w = MainWindow()
-	dialogWindow = DialogWindow()
+	dialogWindow =  DialogWindow()
 	img_dialog=img_dialog()
 	login_dialog=login_dialog()
 	emailDialog = emailDialog()
+	load = loadDialog()
 	w.show()
 	sys.exit(app.exec())
 

@@ -16,11 +16,16 @@ import urllib.parse
 import re
 import getstr_utils
 import time_utils
-
+import proxy_ip_utils
+import random
 def postOrder(my_session,order_url,order_data):
-	order_res = my_session.post(order_url,data=order_data)
-	order_res_json = json.loads(order_res.text)
-	print(order_res_json)
+	order_res_json = {'httpstatus': 200, 'status': False, 'validateMessages': {}, 'messages': ['提交失败，请重试...'], 'validateMessagesShowId': '_validatorMessage'}
+	while order_res_json['status']==False:
+		order_res = my_session.post(order_url,data=order_data)
+		order_res_json = json.loads(order_res.text)
+		print('postOrder',order_res_json)
+		time.sleep(2)
+		
 
 def get_initDc(my_session,initDc_url,DTO_url):
 	initDc_data = {
@@ -55,17 +60,39 @@ def get_initDc(my_session,initDc_url,DTO_url):
 
 		
 		return DTO_res_json,globalRepeatSubmitToken,purpose_codes,key_check_isChange,leftTicketStr,train_location
+def checkOrder(my_session,checkOrderInfo_url,checkOrderInfo_data):
+
+	checkOrder_res = my_session.post(checkOrderInfo_url,data=checkOrderInfo_data)
+	checkOrder_res_json = json.loads(checkOrder_res.text)
+	if checkOrder_res_json['data']['submitStatus']==False:
+		print('开启代理IP提交方式！')
+		ipList = proxy_ip_utils.finally_ip()
+		print(ipList)
+		time.sleep(10)
+		while checkOrder_res_json['data']['submitStatus']==False:
+			proxies = {'http':'http://%s'%(random.choice(ipList))}
+			try:
+				checkOrder_res = my_session.request(method='post',url=checkOrderInfo_url,data=checkOrderInfo_data,proxies=proxies)
+				checkOrder_res_json = json.loads(checkOrder_res.text)
+			except Exception as e:
+				print(e)
+			
+			print('proxies',proxies,'checkOrder_res_json',checkOrder_res_json)
+			#time.sleep(1)
+
 def getQueue(my_session,getQueue_url,getQueue_data):
 	
 	getQueue_res = my_session.post(getQueue_url,data=getQueue_data)
 	getQueue_res_json = json.loads(getQueue_res.text)
+	print('getQueue_res_json',getQueue_res_json)
 
 def confirmOrder(my_session,confirmOrder_url,confirmOrder_data):
 	inormation_bool = False
 	while not inormation_bool:
 		confirmOrder_res = my_session.post(confirmOrder_url,data=confirmOrder_data)
 		confirmOrder_res_json = json.loads(confirmOrder_res.text)
-		print(confirmOrder_res_json)
+		print('confirmOrder_res_json',confirmOrder_res_json)
 		if confirmOrder_res_json['status']:
 			inormation_bool = confirmOrder_res_json['data']['submitStatus']
+
 		time.sleep(2)
