@@ -635,7 +635,6 @@ class MainWindow(QMainWindow):
 		count = 0
 
 		for i in train_dit.keys():
-			
 			if time_utils.compare_mid_time(starttime,endtime,train_dit[i][8]):
 				self.tableWidget.insertRow(count)
 				self.tableWidget.setItem(count,0, QTableWidgetItem(train_dit[i][3]))

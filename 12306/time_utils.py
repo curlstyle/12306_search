@@ -37,16 +37,19 @@ def compare_time(time1,time2):
 		return -1  
 #判断mid_time是否在time1，time2时间内
 def compare_mid_time(s_time,e_time,mid_time):
-	s_time = datetime.datetime.strptime(s_time,'%H:%M')
-	e_time = datetime.datetime.strptime(e_time,'%H:%M')
-	mid_time = datetime.datetime.strptime(mid_time,'%H:%M')
-	result1 = e_time - mid_time
-	result2 = mid_time - s_time 
-	# print(result1.days,result2.days)
-	if result1.days==0 and result2.days==0:
-		return True
+	if mid_time!='24:00':
+		s_time = datetime.datetime.strptime(s_time,'%H:%M')
+		e_time = datetime.datetime.strptime(e_time,'%H:%M')
+		mid_time = datetime.datetime.strptime(mid_time,'%H:%M')
+		result1 = e_time - mid_time
+		result2 = mid_time - s_time 
+		# print(result1.days,result2.days)
+		if result1.days==0 and result2.days==0:
+			return True
+		else:
+			return False
 	else:
-		return False
+		return True
 
 
 if __name__ == '__main__':
